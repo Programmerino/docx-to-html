@@ -14,6 +14,7 @@ open System
 open Microsoft.JSInterop
 open Bolero.Remoting.Client
 open BlazorInputFile
+open System.Text
 
 type Model =
     { Wireframe: Wireframe.Model
@@ -45,9 +46,27 @@ let mudTextField = bBuild comp<MudTextField<_>> []
 
 let mudLink = bBuild comp<MudLink> []
 
+// Avoids UriFormatException for strings being too long
+let unboundedEscape str =
+    let limit = 2000
+
+    let loops = String.length str / limit
+
+    let newBuilder =
+        [ 0 .. loops ]
+        |> List.fold
+            (fun (sb: StringBuilder) x ->
+                if x < loops then
+                    sb.Append(Uri.EscapeDataString(str.Substring(limit * x, limit)))
+                else
+                    sb.Append(Uri.EscapeDataString(str.Substring(limit * x))))
+            (StringBuilder())
+
+    newBuilder.ToString()
+
 let toUri str =
     "data:text/html;charset=utf-8,"
-    + Uri.EscapeDataString(str)
+    + unboundedEscape str
 
 let view model dispatch =
     Wireframe.view
